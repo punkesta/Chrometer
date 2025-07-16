@@ -1,0 +1,27 @@
+<idea-plugin>
+    <id>com.punksoft.chrometer</id>
+    <name>Chrometer</name>
+    <version>0.0.1</version>
+    <vendor url="https://github.com/punkesta">Yaroslav Sydoruk</vendor>
+
+    <description>
+        A simple panel that helps you adjust the colors (hue, saturation, brightness) of your editor scheme with a live preview.
+    </description>
+
+    <change-notes>
+        Initial version
+    </change-notes>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <idea-version since-build="231" until-build="241.*"/>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <toolWindow
+            id="Chrometer"
+            anchor="right"
+            factoryClass="com.punksoft.chrometer.MainToolWindowFactory"
+            icon="/toolWindowIcon.svg"
+            secondary="true"/>
+    </extensions>
+</idea-plugin>
