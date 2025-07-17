@@ -206,7 +206,9 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
 
         val ignoreAttributes = csvToSet(ignoreAttributesTextArea.text)
         // Remove sharps for better UX
-        val ignoreColors = csvToSet(ignoreColorsTextArea.text) { elem -> elem.replace("#", "").lowercase() }
+        val ignoreColors = csvToSet(ignoreColorsTextArea.text) { elem ->
+            elem.replace("#", "").lowercase()
+        }
 
         for (attrKey in allAttributes) {
             val attr = sourceScheme.getAttributes(attrKey)?.clone() ?: continue
@@ -234,7 +236,7 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
     private fun csvToSet(csv: String, formatter: ((elem: String) -> String)? = null): Set<String> {
         val elems = mutableSetOf<String>()
         csv.split(",").forEach { elem ->
-            var formattedElem = formatter?.invoke(elem) ?: elem
+            val formattedElem = formatter?.invoke(elem) ?: elem
             elems.add(formattedElem.trim())
         }
         return elems
