@@ -66,9 +66,7 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
             KOTLIN_SMART_CONSTANT
         """.trimIndent().replace("\n",  "")
 
-        private val DEFAULT_IGNORE_COLORS_CSV = """
-            21221E, A9B7C6, BCBEC4, C0CCDB
-        """.trimIndent()
+        private const val DEFAULT_IGNORE_COLORS_CSV = "21221E, A9B7C6, BCBEC4, C0CCDB"
     }
 
     private val colorsManager = EditorColorsManager.getInstance()
@@ -84,8 +82,8 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
     private val bSlider = JBSlider(-100, 100, 0)
     private val ignoreAttributesTextArea = JTextArea(5, 35)
     private val ignoreColorsTextArea = JTextArea(5, 35)
-    private val inverseIngoreAttributesCheckBox = JBCheckBox("Inverse attr. selection")
-    private val inverseIngoreColorsCheckBox = JBCheckBox("Inverse color selection")
+    private val inverseIgnoreAttributesCheckBox = JBCheckBox("Inverse attr. selection")
+    private val inverseIgnoreColorsCheckBox = JBCheckBox("Inverse color selection")
     private val applyButton = JButton("Save")
     private val resetButton = JButton("Reset")
 
@@ -149,8 +147,8 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
         slidersPanel.add(ignoreColorsTextAreaContainer)
 
         val inverseIngoreCheckBoxContainer = JBPanel<JBPanel<*>>(BorderLayout(5, 0))
-        inverseIngoreCheckBoxContainer.add(inverseIngoreAttributesCheckBox, BorderLayout.WEST)
-        inverseIngoreCheckBoxContainer.add(inverseIngoreColorsCheckBox, BorderLayout.CENTER)
+        inverseIngoreCheckBoxContainer.add(inverseIgnoreAttributesCheckBox, BorderLayout.WEST)
+        inverseIngoreCheckBoxContainer.add(inverseIgnoreColorsCheckBox, BorderLayout.CENTER)
 
         slidersPanel.add(Box.createVerticalStrut(10))
         slidersPanel.add(inverseIngoreCheckBoxContainer)
@@ -186,11 +184,11 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
             refreshPreview()
         }
 
-        inverseIngoreAttributesCheckBox.addChangeListener {
+        inverseIgnoreAttributesCheckBox.addChangeListener {
             refreshPreview()
         }
 
-        inverseIngoreColorsCheckBox.addChangeListener {
+        inverseIgnoreColorsCheckBox.addChangeListener {
             refreshPreview()
         }
 
@@ -243,10 +241,10 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
 
             // Check if reliable to affect current color
             val isIgnoredAttr = ignoreAttributes.contains(attrKey.externalName)
-            val isIgnoreAttrsInversed = inverseIngoreAttributesCheckBox.isSelected
+            val isIgnoreAttrsInversed = inverseIgnoreAttributesCheckBox.isSelected
 
             if (isIgnoredAttr == isIgnoreAttrsInversed) {
-                val isIgnoreColorsInversed = inverseIngoreColorsCheckBox.isSelected
+                val isIgnoreColorsInversed = inverseIgnoreColorsCheckBox.isSelected
 
                 val fgHex = attr.foregroundColor?.hexWithoutSharp()?.lowercase()
 
@@ -320,8 +318,8 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
         ignoreAttributesTextArea.text = DEFAULT_IGNORE_ATTRIBUTES_CSV
         ignoreColorsTextArea.text = DEFAULT_IGNORE_COLORS_CSV
         setBottomButtonsEnabled(false)
-        inverseIngoreAttributesCheckBox.isSelected = false
-        inverseIngoreColorsCheckBox.isSelected = false
+        inverseIgnoreAttributesCheckBox.isSelected = false
+        inverseIgnoreColorsCheckBox.isSelected = false
     }
 
     private fun setBottomButtonsEnabled(isEnabled: Boolean) {

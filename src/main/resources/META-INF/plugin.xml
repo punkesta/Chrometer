@@ -1,7 +1,6 @@
 <idea-plugin>
     <id>com.punksoft.chrometer</id>
     <name>Chrometer (Color Scheme Adjuster)</name>
-    <version>0.0.4</version>
     <vendor url="https://github.com/punkesta">Yaroslav Sydoruk</vendor>
 
     <description>
