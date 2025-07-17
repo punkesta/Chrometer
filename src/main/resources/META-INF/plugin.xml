@@ -1,7 +1,7 @@
 <idea-plugin>
     <id>com.punksoft.chrometer</id>
     <name>Chrometer (Color Scheme Adjuster)</name>
-    <version>0.0.2</version>
+    <version>0.0.3</version>
     <vendor url="https://github.com/punkesta">Yaroslav Sydoruk</vendor>
 
     <description>
@@ -13,8 +13,6 @@
     </change-notes>
 
     <depends>com.intellij.modules.platform</depends>
-
-    <idea-version since-build="231" until-build="999.*"/>
 
     <extensions defaultExtensionNs="com.intellij">
         <toolWindow
