@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "com.punksoft.chrometer"
-version = "0.0.3"
+version = "0.0.5"
 
 repositories {
     mavenCentral()
@@ -32,6 +32,7 @@ tasks {
 
     patchPluginXml {
         sinceBuild.set("241")
+//        untilBuild.set("999")
     }
 
     signPlugin {

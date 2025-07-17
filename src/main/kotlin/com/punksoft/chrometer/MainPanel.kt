@@ -15,6 +15,7 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.editor.colors.impl.EditorColorsManagerImpl
 import com.intellij.openapi.options.SchemeManager
 import com.intellij.ui.JBColor
+import com.intellij.ui.components.JBCheckBox
 import com.intellij.ui.components.JBLabel
 import com.intellij.ui.components.JBPanel
 import com.intellij.ui.components.JBScrollPane
@@ -72,15 +73,21 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
 
     private val colorsManager = EditorColorsManager.getInstance()
 
+    private val stolenSchemeManager by lazy {
+        val managerField = EditorColorsManagerImpl::class.java.getDeclaredField("schemeManager")
+        managerField.isAccessible = true
+        managerField.get(colorsManager) as SchemeManager<*>
+    }
+
     private val hSlider = JBSlider(-100, 100, 0)
     private val sSlider = JBSlider(-100, 100, 0)
     private val bSlider = JBSlider(-100, 100, 0)
     private val ignoreAttributesTextArea = JTextArea(5, 35)
     private val ignoreColorsTextArea = JTextArea(5, 35)
-    private val applyButton = JButton("Apply")
+    private val inverseIngoreAttributesCheckBox = JBCheckBox("Inverse attr. selection")
+    private val inverseIngoreColorsCheckBox = JBCheckBox("Inverse color selection")
+    private val applyButton = JButton("Save")
     private val resetButton = JButton("Reset")
-
-    private val allAttributes = TextAttributesKey.getAllKeys().sortedBy { it.externalName }
 
     private var sourceScheme = EditorColorsManager.getInstance().globalScheme.clone() as EditorColorsSchemeImpl
     private var tempScheme: EditorColorsSchemeImpl? = null
@@ -126,7 +133,9 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
         ignoreAttributesTextArea.text = DEFAULT_IGNORE_ATTRIBUTES_CSV
 
         val ignoreAttributesTextAreaContainer = JBScrollPane(ignoreAttributesTextArea)
-        ignoreAttributesTextAreaContainer.border = BorderFactory.createTitledBorder("Ignore Attributes:")
+        ignoreAttributesTextAreaContainer.border = BorderFactory.createTitledBorder(
+            "Ignore Attributes (warnings, errors, etc.):"
+        )
 
         ignoreColorsTextArea.lineWrap = true
         ignoreColorsTextArea.wrapStyleWord = true
@@ -138,6 +147,13 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
         slidersPanel.add(ignoreAttributesTextAreaContainer)
         slidersPanel.add(Box.createVerticalStrut(5))
         slidersPanel.add(ignoreColorsTextAreaContainer)
+
+        val inverseIngoreCheckBoxContainer = JBPanel<JBPanel<*>>(BorderLayout(5, 0))
+        inverseIngoreCheckBoxContainer.add(inverseIngoreAttributesCheckBox, BorderLayout.WEST)
+        inverseIngoreCheckBoxContainer.add(inverseIngoreColorsCheckBox, BorderLayout.CENTER)
+
+        slidersPanel.add(Box.createVerticalStrut(10))
+        slidersPanel.add(inverseIngoreCheckBoxContainer)
 
         val bottomButtons = JBPanel<JBPanel<*>>(FlowLayout())
 
@@ -170,6 +186,14 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
             refreshPreview()
         }
 
+        inverseIngoreAttributesCheckBox.addChangeListener {
+            refreshPreview()
+        }
+
+        inverseIngoreColorsCheckBox.addChangeListener {
+            refreshPreview()
+        }
+
         applyButton.addActionListener {
             applyAndSave()
         }
@@ -196,7 +220,7 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
         checkSourceSchemeActuality()
 
         tempScheme = sourceScheme.clone() as EditorColorsSchemeImpl
-        tempScheme!!.name = sourceScheme.name + " Chrometer Temp"
+        tempScheme!!.name = sourceScheme.name + " Temp"
 
         val tempScheme = this.tempScheme!!
 
@@ -210,27 +234,37 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
             elem.replace("#", "").lowercase()
         }
 
-        for (attrKey in allAttributes) {
-            val attr = sourceScheme.getAttributes(attrKey)?.clone() ?: continue
+        val keys = sourceScheme.directlyDefinedAttributes.keys.map {
+            key -> TextAttributesKey.createTextAttributesKey(key)
+        }
+
+        for (attrKey in keys/*TextAttributesKey.getAllKeys()*/) {
+            val attr = tempScheme.getAttributes(attrKey)?.clone() ?: continue
 
             // Check if reliable to affect current color
-            if (!ignoreAttributes.contains(attrKey.externalName)) {
+            val isIgnoredAttr = ignoreAttributes.contains(attrKey.externalName)
+            val isIgnoreAttrsInversed = inverseIngoreAttributesCheckBox.isSelected
+
+            if (isIgnoredAttr == isIgnoreAttrsInversed) {
+                val isIgnoreColorsInversed = inverseIngoreColorsCheckBox.isSelected
+
                 val fgHex = attr.foregroundColor?.hexWithoutSharp()?.lowercase()
-                if (attr.foregroundColor != null && !ignoreColors.contains(fgHex)) {
+
+                if (attr.foregroundColor != null && ignoreColors.contains(fgHex) == isIgnoreColorsInversed) {
                     attr.foregroundColor = adjustHsb(attr.foregroundColor, h, s, b)
                 }
 
                 val bgHex = attr.backgroundColor?.hexWithoutSharp()?.lowercase()
-                if (attr.backgroundColor != null && !ignoreColors.contains(bgHex)) {
+                if (attr.backgroundColor != null && ignoreColors.contains(bgHex) == isIgnoreColorsInversed) {
                     attr.backgroundColor = adjustHsb(attr.backgroundColor, h, s, b)
                 }
-
             }
+
             tempScheme.setAttributes(attrKey, attr)
         }
 
         colorsManager.addColorScheme(tempScheme)
-        colorsManager.setGlobalScheme(tempScheme.clone() as EditorColorsSchemeImpl)
+        colorsManager.setGlobalScheme(tempScheme)
     }
 
     private fun csvToSet(csv: String, formatter: ((elem: String) -> String)? = null): Set<String> {
@@ -244,8 +278,10 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
 
     private fun checkSourceSchemeActuality() {
         val currName = colorsManager.globalScheme.name
+
         if (currName != tempScheme?.name && currName != sourceScheme.name) {
-            sourceScheme = colorsManager.globalScheme as EditorColorsSchemeImpl
+            println("User switched scheme to: $currName")
+            sourceScheme = colorsManager.globalScheme.clone() as EditorColorsSchemeImpl
         }
     }
 
@@ -260,19 +296,21 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
         val h = getHDelta(hSlider.value)
         val s = getSbDelta(sSlider.value)
         val b = getSbDelta(bSlider.value)
-        savableScheme.name = sourceScheme.name + " HSB($h, $s, $b)"
+        savableScheme.name = sourceScheme.name + " - HSB($h, $s, $b)"
 
         resetControlsState()
         removeTempScheme()
 
-        colorsManager.addColorScheme(savableScheme)
-        colorsManager.setGlobalScheme(savableScheme)
+        ApplicationManager.getApplication().runWriteAction {
+            colorsManager.addColorScheme(savableScheme)
+            colorsManager.setGlobalScheme(savableScheme)
+        }
     }
 
     private fun reset() {
-        removeTempScheme()
         resetControlsState()
         setupSourceScheme()
+        removeTempScheme()
     }
 
     private fun resetControlsState() {
@@ -282,6 +320,8 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
         ignoreAttributesTextArea.text = DEFAULT_IGNORE_ATTRIBUTES_CSV
         ignoreColorsTextArea.text = DEFAULT_IGNORE_COLORS_CSV
         setBottomButtonsEnabled(false)
+        inverseIngoreAttributesCheckBox.isSelected = false
+        inverseIngoreColorsCheckBox.isSelected = false
     }
 
     private fun setBottomButtonsEnabled(isEnabled: Boolean) {
@@ -289,16 +329,7 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
         resetButton.isEnabled = isEnabled
     }
 
-    private fun setupSourceScheme() {
-        val currName = colorsManager.globalScheme.name
-        // Maybe user changed scheme in settings while editing
-        val originalScheme = if (currName != sourceScheme.name && currName != tempScheme?.name) {
-            colorsManager.globalScheme
-        } else {
-            this.sourceScheme
-        }
-        EditorColorsManager.getInstance().setGlobalScheme(originalScheme)
-    }
+    private fun setupSourceScheme() = EditorColorsManager.getInstance().setGlobalScheme(sourceScheme)
 
     private fun adjustHsb(color: Color, deltaH: Float, deltaS: Float, deltaB: Float): JBColor {
         val hsb = FloatArray(3)
@@ -318,10 +349,7 @@ class MainPanel : JBPanel<MainPanel>(BorderLayout()) {
 
     private fun removeTempScheme() {
         ApplicationManager.getApplication().runWriteAction {
-            val managerField = EditorColorsManagerImpl::class.java.getDeclaredField("schemeManager")
-            managerField.isAccessible = true
-            val schemeManager = managerField.get(colorsManager) as SchemeManager<*>
-            schemeManager.removeScheme(tempScheme!!.name)
+            stolenSchemeManager.removeScheme(tempScheme!!.name)
         }
     }
 }
